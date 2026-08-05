@@ -1,0 +1,40 @@
+name: Safety Audit
+on:
+  pull_request:
+    paths:
+      - 'contracts/*.ts'
+      - 'lib/neurocore-swarm.ts'
+      - 'lib/safety_gate.ts'
+      - 'lib/mcp_neurocore.ts'
+      - '**/neurocore-neural-decoder/**'
+jobs:
+  audit:
+    runs-on: self-hosted
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Safety Audit
+        run: C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
+      - name: Comment PR Success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Neurocore suite passed'
+            })
+      - name: Comment PR Failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Neurocore safety audit failed.'
+            })
