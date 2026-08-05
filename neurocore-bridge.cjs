@@ -1,0 +1,80 @@
+/**
+ * neurocore-bridge.cjs
+ * ESM/CJS bridge for Neurocore TypeScript modules.
+ * Uses dynamic import() to load ESM TypeScript modules from server.js (CommonJS).
+ */
+
+const path = require('path');
+const fs = require('fs');
+
+// Resolve Neurocore repo root from server.js location
+const NEUROCORE_ROOT = path.resolve(__dirname, '../neurocore');
+const NEUROCORE_LIB = path.join(NEUROCORE_ROOT, 'lib');
+
+let _moduleCache = null;
+let _importPromise = null;
+
+/**
+ * Dynamically import Neurocore ESM modules.
+ * Uses tsx/ts-node loader for on-the-fly TypeScript transpilation.
+ */
+async function loadNeurocoreModules() {
+  if (_moduleCache) return _moduleCache;
+  
+  // Check if already loading
+  if (_importPromise) return _importPromise;
+  
+  _importPromise = (async () => {
+    try {
+      // Import the main Neurocore module
+      // tsx handles TypeScript transpilation automatically
+      const mod = await import('file://' + path.join(NEUROCORE_LIB, 'neurocore-swarm.ts').replace(/\\/g, '/'));
+      
+      _moduleCache = {
+        OmniSwarmAdapter: mod.OmniSwarmAdapter,
+        NeuroStreamAdapter: mod.NeuroStreamAdapter,
+        SwarmUpgradeRegistry: mod.SwarmUpgradeRegistry,
+        FederatedDebateEngine: mod.FederatedDebateEngine,
+        SafetyGate: mod.SafetyGate,
+        // Types are compile-time only
+      };
+      
+      return _moduleCache;
+    } catch (err) {
+      console.error('[neurocore-bridge] Failed to load Neurocore modules:', err.message);
+      throw err;
+    }
+  })();
+  
+  return _importPromise;
+}
+
+/**
+ * Convenience wrapper to get a connected OmniSwarmAdapter instance.
+ */
+async function getSwarmAdapter(config = {}) {
+  const modules = await loadNeurocoreModules();
+  const adapter = new modules.OmniSwarmAdapter();
+  await adapter.connect(config);
+  return adapter;
+}
+
+/**
+ * Check if Neurocore modules are loadable.
+ */
+async function isAvailable() {
+  try {
+    await loadNeurocoreModules();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+module.exports = {
+  loadNeurocoreModules,
+  getSwarmAdapter,
+  isAvailable,
+  NEUROCORE_ROOT,
+  NEUROCORE_LIB,
+};
