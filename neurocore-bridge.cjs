@@ -62,12 +62,21 @@ async function loadNeurocoreModules() {
       } catch (memoryErr) {
         console.warn('[neurocore-bridge] Memory/learning module not available:', memoryErr.message);
       }
+
+      let functionCallAdapter = null;
+      try {
+        const funcMod = await import('file://' + path.join(NEUROCORE_ROOT, 'adapters', 'function-call-adapter.ts').replace(/\\/g, '/'));
+        functionCallAdapter = new funcMod.FunctionCallAdapter();
+      } catch (funcErr) {
+        console.warn('[neurocore-bridge] Function-call adapter not available:', funcErr.message);
+      }
       
       return {
         ..._moduleCache,
         spikeComm,
         memoryStore,
-        learningLogger
+        learningLogger,
+        functionCallAdapter
       };
     } catch (err) {
       console.error('[neurocore-bridge] Failed to load Neurocore modules:', err.message);
@@ -108,12 +117,23 @@ function getLearningLogger() {
   return _moduleCache?.learningLogger || null;
 }
 
+function getFunctionCallAdapter() {
+  return _moduleCache?.functionCallAdapter || null;
+}
+
+async function getFunctionCallAdapterAsync() {
+  await loadNeurocoreModules();
+  return getFunctionCallAdapter();
+}
+
 module.exports = {
   loadNeurocoreModules,
   getSwarmAdapter,
   isAvailable,
   getMemoryStore,
   getLearningLogger,
+  getFunctionCallAdapter,
+  getFunctionCallAdapterAsync,
   NEUROCORE_ROOT,
   NEUROCORE_LIB,
 };
