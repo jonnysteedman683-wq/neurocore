@@ -39,7 +39,21 @@ async function loadNeurocoreModules() {
         // Types are compile-time only
       };
       
-      return _moduleCache;
+      let spikeComm = null;
+      try {
+        const spikeMod = await import('file://' + path.join(NEUROCORE_ROOT, 'adapters', 'omnibus-swarm', 'spike-comm.js').replace(/\\/g, '/'));
+        spikeComm = {
+          encodeIntentToSpikes: spikeMod.encodeIntentToSpikes,
+          decodeSpikesToIntent: spikeMod.decodeSpikesToIntent,
+          hashIntentToPhase: spikeMod.hashIntentToPhase,
+          groupByPhase: spikeMod.groupByPhase,
+          PHASE_BUCKETS: spikeMod.PHASE_BUCKETS,
+        };
+      } catch (spikeErr) {
+        console.warn('[neurocore-bridge] Spike comm module not available:', spikeErr.message);
+      }
+      
+      return { ..._moduleCache, spikeComm };
     } catch (err) {
       console.error('[neurocore-bridge] Failed to load Neurocore modules:', err.message);
       throw err;
