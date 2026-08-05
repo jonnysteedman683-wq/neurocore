@@ -1,0 +1,17 @@
+{
+  "name": "neurocore",
+  "version": "1.0.0",
+  "description": "Neurocore Control Plane",
+  "type": "module",
+  "main": "lib/neurocore-swarm.ts",
+  "scripts": {
+    "test": "node --import tsx --test tests/neurocore_integration.test.ts --test-reporter=spec",
+    "lint": "tsc --noEmit",
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.5",
+    "typescript": "^5.0.0"
+  }
+}
