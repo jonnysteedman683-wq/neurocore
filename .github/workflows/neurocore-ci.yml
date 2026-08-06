@@ -1,0 +1,70 @@
+name: Neurocore CI
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/*.ts'
+      - 'lib/neurocore-swarm.ts'
+      - 'lib/safety_gate.ts'
+      - 'lib/mcp_neurocore.ts'
+      - 'neurocore-neural-decoder/**' # Note: Assuming this is mapped or moved to standard repo
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  test-and-audit:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        id: tests
+        run: node --test tests/
+        continue-on-error: true
+
+      - name: Run safety audit
+        id: audit
+        run: C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
+        continue-on-error: true
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const testPassed = "${{ steps.tests.outcome }}" === "success";
+            const auditPassed = "${{ steps.audit.outcome }}" === "success";
+
+            if (testPassed && auditPassed) {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: "✅ Neurocore suite passed"
+              });
+            } else {
+              let msg = "Failures:\n";
+              if (!testPassed) msg += "- Tests failed\n";
+              if (!auditPassed) msg += "- Safety audit failed\n";
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: msg
+              });
+            }
+
+      - name: Block merge if safety audit failed
+        if: steps.audit.outcome != 'success'
+        run: exit 1

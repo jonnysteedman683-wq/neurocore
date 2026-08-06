@@ -1,0 +1,38 @@
+name: Nightly Safety Audit
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Nightly at midnight UTC
+
+jobs:
+  nightly-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout neurocore code
+        uses: actions/checkout@v4
+        with:
+          path: neurocore
+
+      - name: Checkout OMNIBUS code
+        uses: actions/checkout@v4
+        with:
+          repository: jonnysteedman683-wq/OMNIBUS
+          path: OMNIBUS
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'latest'
+
+      - name: Check drift in OMNIBUS/lib/neurocore-swarm.ts vs main
+        run: |
+          if ! diff neurocore/lib/neurocore-swarm.ts OMNIBUS/lib/neurocore-swarm.ts; then
+            echo "::error::Drift detected in neurocore-swarm.ts between neurocore and OMNIBUS"
+            exit 1
+          fi
+
+      - name: Run integration test against live decoder service
+        run: |
+          cd neurocore
+          npm install
+          node --test tests/
