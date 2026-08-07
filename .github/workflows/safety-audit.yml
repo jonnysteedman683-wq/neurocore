@@ -1,0 +1,19 @@
+name: Safety Audit
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/*.ts'
+      - 'lib/neurocore-swarm.ts'
+      - 'lib/safety_gate.ts'
+      - 'lib/mcp_neurocore.ts'
+
+jobs:
+  audit:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Safety Audit Script
+        run: |
+          C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat

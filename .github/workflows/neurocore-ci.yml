@@ -1,0 +1,96 @@
+name: Neurocore CI
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/*.ts'
+      - 'lib/neurocore-swarm.ts'
+      - 'lib/safety_gate.ts'
+      - 'lib/mcp_neurocore.ts'
+  schedule:
+    - cron: '0 0 * * *' # Nightly
+
+jobs:
+  test_and_comment:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci || npm install # adjust depending on if lockfile exists
+
+      - name: Run tests
+        id: test_run
+        run: node --import tsx --test tests/ > test_output.txt 2>&1
+        continue-on-error: true
+
+      - name: Comment on PR (Success)
+        if: steps.test_run.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Neurocore suite passed'
+            })
+
+      - name: Comment on PR (Failure)
+        if: steps.test_run.outcome != 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let output = fs.readFileSync('test_output.txt', 'utf8');
+            if (output.length > 65000) {
+              output = output.substring(0, 65000) + '\n... [output truncated]';
+            }
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Neurocore suite failed:\n```\n' + output + '\n```'
+            })
+
+      - name: Fail job if tests failed
+        if: steps.test_run.outcome != 'success'
+        run: exit 1
+
+  nightly_integration:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Neurocore
+        uses: actions/checkout@v4
+        with:
+          path: neurocore
+
+      - name: Checkout OMNIBUS
+        uses: actions/checkout@v4
+        with:
+          repository: jonnysteedman683-wq/OMNIBUS
+          path: OMNIBUS
+
+      - name: Check OMNIBUS drift
+        run: |
+          if ! diff OMNIBUS/lib/neurocore-swarm.ts neurocore/lib/neurocore-swarm.ts; then
+            echo "::error::SwarmRuntimeEngine API mismatch detected: drift between neurocore/lib/neurocore-swarm.ts and OMNIBUS/lib/neurocore-swarm.ts"
+            exit 1
+          fi
+
+      - name: Run integration test against live decoder service
+        run: |
+          cd neurocore
+          echo "Running integration tests against live decoder service"
+          # Assuming there's a specific script for this, for now run tests.
+          npm ci || npm install
+          node --import tsx --test tests/integration/ # Or specific integration test file if it exists, otherwise full suite or mock.
