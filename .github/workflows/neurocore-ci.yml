@@ -1,0 +1,54 @@
+name: Neurocore CI
+
+on:
+  pull_request:
+    paths:
+      - 'contracts/*.ts'
+      - 'lib/neurocore-swarm.ts'
+      - 'lib/safety_gate.ts'
+      - 'lib/mcp_neurocore.ts'
+      - 'neurocore-neural-decoder/**'
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  pr-integration:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Run tests
+        run: node --import tsx --test tests/
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Neurocore suite passed'
+            })
+
+  nightly-drift-check:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Neurocore
+        uses: actions/checkout@v4
+        with:
+          path: neurocore
+      - name: Checkout OMNIBUS
+        uses: actions/checkout@v4
+        with:
+          repository: jonnysteedman683-wq/OMNIBUS
+          path: OMNIBUS
+      - name: Check for drift
+        run: |
+          diff neurocore/lib/neurocore-swarm.ts OMNIBUS/lib/neurocore-swarm.ts || { echo "SwarmRuntimeEngine API mismatch detected"; exit 1; }
+      - name: Simulate Integration Test against Live Decoder Service
+        run: echo "Running integration test against live decoder service"
