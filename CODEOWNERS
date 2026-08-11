@@ -1,1 +1,6 @@
 * @you @antigravity @ai_studio
+contracts/*.ts @you
+lib/neurocore-swarm.ts @antigravity
+lib/safety_gate.ts @you
+lib/mcp_neurocore.ts @you
+**/neurocore-neural-decoder/** @ai_studio
