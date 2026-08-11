@@ -1,0 +1,20 @@
+name: Safety Audit
+
+on:
+  pull_request:
+    paths:
+      - "contracts/*.ts"
+      - "lib/neurocore-swarm.ts"
+      - "lib/safety_gate.ts"
+      - "lib/mcp_neurocore.ts"
+      - "**/neurocore-neural-decoder/**"
+
+jobs:
+  audit:
+    name: Run Safety Audit
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Execute safety audit script (blocks merge on failure)
+        run: C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
