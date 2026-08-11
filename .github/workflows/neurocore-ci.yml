@@ -3,13 +3,13 @@ name: Neurocore CI
 on:
   pull_request:
     paths:
-      - 'contracts/*.ts'
-      - 'lib/neurocore-swarm.ts'
-      - 'lib/safety_gate.ts'
-      - 'lib/mcp_neurocore.ts'
-      - '**/neurocore-neural-decoder/**'
+      - "contracts/*.ts"
+      - "lib/neurocore-swarm.ts"
+      - "lib/safety_gate.ts"
+      - "lib/mcp_neurocore.ts"
+      - "**/neurocore-neural-decoder/**"
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
 
 jobs:
   test:
@@ -25,15 +25,21 @@ jobs:
           node-version: 22
       - run: npm install tsx typescript @types/node
       - name: Run Tests
-        run: node --import tsx --test tests/
+        run: node --import tsx --test tests/ 2>&1 | tee test_output.log
         id: tests
       - name: Comment on PR
         uses: actions/github-script@v7
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         with:
           script: |
+            const fs = require('fs');
             const success = '${{ job.status }}' === 'success';
-            const body = success ? '✅ Neurocore suite passed' : '❌ Neurocore suite failed';
+            let body = success ? '✅ Neurocore suite passed' : '❌ Neurocore suite failed';
+            if (!success && fs.existsSync('test_output.log')) {
+              const output = fs.readFileSync('test_output.log', 'utf8');
+              const failures = output.split('\n').filter(line => line.includes('#') || line.includes('not ok')).join('\n');
+              body += '\n\n<details><summary>Failures</summary>\n\n```\n' + failures + '\n```\n</details>';
+            }
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -44,6 +50,8 @@ jobs:
   nightly:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
     steps:
       - name: Checkout neurocore
         uses: actions/checkout@v4
@@ -55,16 +63,15 @@ jobs:
           repository: jonnysteedman683-wq/OMNIBUS
           path: omnibus
       - name: Check API drift
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ! cmp -s neurocore/lib/neurocore-swarm.ts omnibus/lib/neurocore-swarm.ts; then
-            echo "API mismatch detected between neurocore and OMNIBUS"
-            exit 1
-          fi
+          cmp -s neurocore/lib/neurocore-swarm.ts omnibus/lib/neurocore-swarm.ts || (echo "API mismatch detected between neurocore and OMNIBUS" && gh issue create --title "🚨 SwarmRuntimeEngine API Mismatch Detected" --body "The API contract \`neurocore-swarm.ts\` has drifted between \`neurocore\` and \`OMNIBUS\`. @you @antigravity @ai_studio please review." --repo ${{ github.repository }} && false)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run Integration Tests
+      - name: Run Integration Tests Against Live Decoder Service
         env:
           LIVE_DECODER_SERVICE: true
         run: |
