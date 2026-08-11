@@ -41,7 +41,7 @@ async function loadNeurocoreModules() {
       
       let spikeComm = null;
       try {
-        const spikeMod = await import('file://' + path.join(NEUROCORE_ROOT, 'adapters', 'omnibus-swarm', 'spike-comm.js').replace(/\\/g, '/'));
+        const spikeMod = await import('file://' + path.join(NEUROCORE_ROOT, 'adapters', 'omnibus-swarm', 'spike-comm.cjs').replace(/\\/g, '/'));
         spikeComm = {
           encodeIntentToSpikes: spikeMod.encodeIntentToSpikes,
           decodeSpikesToIntent: spikeMod.decodeSpikesToIntent,

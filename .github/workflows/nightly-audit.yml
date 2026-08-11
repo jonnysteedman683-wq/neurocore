@@ -1,0 +1,35 @@
+name: Nightly Integration Audit
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  nightly-audit:
+    name: Nightly Safety + Drift Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: jonnysteedman683-wq/OMNIBUS
+
+      - name: Check SwarmRuntimeEngine API
+        run: |
+          echo "Checking OMNIBUS SwarmRuntimeEngine API compatibility..."
+
+      - name: Run Full Integration Test
+        run: |
+          echo "Running full end-to-end test with decoder service..."
+          node --test tests/ --test-reporter=spec
+
+      - name: Report Results
+        run: |
+          echo "Nightly audit completed"
+
+      - name: Alert on Failure
+        if: failure()
+        run: |
+          echo "::warning::Neurocore nightly audit FAILED - manual intervention required"

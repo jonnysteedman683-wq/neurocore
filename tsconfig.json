@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "declaration": true,
+    "outDir": "dist",
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "types": ["node"],
+    "lib": ["ES2022"],
+    "noEmitOnError": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@/contracts/*": ["./contracts/*"],
+      "@/contracts": ["./contracts/index.ts"],
+      "@/core/*": ["./core/*"],
+      "@/core": ["./core/index.ts"],
+      "@/lib/*": ["./lib/*"]
+    }
+  },
+  "include": [
+    "contracts/**/*",
+    "core/**/*",
+    "lib/**/*",
+    "tests/**/*",
+    "scripts/**/*",
+    "types/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".git",
+    "scripts"
+  ]
+}
