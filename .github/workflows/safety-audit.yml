@@ -3,11 +3,11 @@ name: Safety Audit
 on:
   pull_request:
     paths:
-      - "contracts/*.ts"
-      - "lib/neurocore-swarm.ts"
-      - "lib/safety_gate.ts"
-      - "lib/mcp_neurocore.ts"
-      - "**/neurocore-neural-decoder/**"
+      - 'contracts/*.ts'
+      - 'lib/neurocore-swarm.ts'
+      - 'lib/safety_gate.ts'
+      - 'lib/mcp_neurocore.ts'
+      - '**/neurocore-neural-decoder/**'
 
 jobs:
   audit:

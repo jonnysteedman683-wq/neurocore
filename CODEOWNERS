@@ -1,20 +1,18 @@
 # Neurocore Code Ownership
 
 # Core contracts - owned by Hermes
-contracts/* @jonnysteedman683-wq
+contracts/* @you
 
 # Safety critical - owned by Hermes  
-lib/safety_gate.ts @jonnysteedman683-wq
+lib/safety_gate.ts @you
 
 # Swarm adapter - AG manages, Hermes reviews
-lib/neurocore-swarm.ts @antigravity-managed
+lib/neurocore-swarm.ts @antigravity
 
 # Neural decoder - AS manages
-neurocore-neural-decoder/** @as-neural-decoder
+**/neurocore-neural-decoder/** @ai_studio
 
 # All tests - all contributors must keep passing
-tests/** @all
+tests/** @you @antigravity @ai_studio
 
-* @jonnysteedman683-wq
-* @antigravity
-* @ai_studio
+* @you @antigravity @ai_studio
