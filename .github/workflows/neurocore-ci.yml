@@ -35,7 +35,7 @@ jobs:
       - name: Run tests
         id: test
         run: |
-          if node --import tsx --test tests/; then
+          if node --import tsx --test tests/ > test_output.log 2>&1; then
             echo "status=passed" >> $GITHUB_OUTPUT
           else
             echo "status=failed" >> $GITHUB_OUTPUT
@@ -47,12 +47,17 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
             const status = '${{ steps.test.outputs.status }}';
             let body = '';
             if (status === 'passed') {
               body = '✅ Neurocore suite passed';
             } else {
-              body = '❌ Neurocore suite failed. Please check the workflow logs for failures.';
+              let logs = 'Could not read logs.';
+              if (fs.existsSync('test_output.log')) {
+                logs = fs.readFileSync('test_output.log', 'utf8').substring(0, 60000);
+              }
+              body = `❌ Neurocore suite failed:\n\n\`\`\`\n${logs}\n\`\`\``;
             }
             github.rest.issues.createComment({
               issue_number: context.issue.number,
