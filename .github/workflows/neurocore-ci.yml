@@ -35,7 +35,7 @@ jobs:
       - name: Run tests
         id: test
         run: |
-          if node --import tsx --test tests/ > test_output.log 2>&1; then
+          if npm run test > test_output.log 2>&1; then
             echo "status=passed" >> $GITHUB_OUTPUT
           else
             echo "status=failed" >> $GITHUB_OUTPUT
