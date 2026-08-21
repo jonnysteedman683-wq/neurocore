@@ -30,7 +30,7 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run tests
         id: test
@@ -99,7 +99,7 @@ jobs:
         working-directory: neurocore
         run: |
           echo "Running full end-to-end test with decoder service..."
-          npm ci
+          npm install
           npm run test
 
       - name: Report Results
