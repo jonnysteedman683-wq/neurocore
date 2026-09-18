@@ -10,7 +10,7 @@ lib/safety_gate.ts @you
 lib/neurocore-swarm.ts @antigravity
 
 # Neural decoder - AS manages
-**/neurocore-neural-decoder/** @ai_studio
+../neurocore-neural-decoder/** @ai_studio
 
 # All tests - all contributors must keep passing
 tests/** @you @antigravity @ai_studio
