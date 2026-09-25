@@ -14,7 +14,8 @@ jobs:
     name: Run Safety Audit
     runs-on: [self-hosted, windows]
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-      - name: Execute safety audit script (blocks merge on failure)
-        run: C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
+      - uses: actions/checkout@v4
+
+      - name: Run audit script
+        run: |
+          C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
