@@ -32,6 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Remove package-lock.json
+        run: rm -f package-lock.json
+
       - name: Run tests
         id: test
         run: |
@@ -100,6 +103,7 @@ jobs:
         run: |
           echo "Running full end-to-end test with decoder service..."
           npm install
+          rm -f package-lock.json
           node --test tests/
 
       - name: Report Results
