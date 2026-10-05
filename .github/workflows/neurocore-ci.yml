@@ -95,6 +95,11 @@ jobs:
             exit 1
           fi
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Run Full Integration Test
         working-directory: neurocore
         run: |
