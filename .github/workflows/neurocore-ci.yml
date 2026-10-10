@@ -87,6 +87,11 @@ jobs:
           repository: jonnysteedman683-wq/OMNIBUS
           path: OMNIBUS
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Check SwarmRuntimeEngine API
         run: |
           echo "Checking OMNIBUS SwarmRuntimeEngine API compatibility..."
