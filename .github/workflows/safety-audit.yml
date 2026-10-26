@@ -7,7 +7,7 @@ on:
       - 'lib/neurocore-swarm.ts'
       - 'lib/safety_gate.ts'
       - 'lib/mcp_neurocore.ts'
-      - '**/neurocore-neural-decoder/**'
+      - '../neurocore-neural-decoder/**'
 
 jobs:
   audit:
