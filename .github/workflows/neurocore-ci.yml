@@ -105,6 +105,7 @@ jobs:
         run: |
           echo "Running full end-to-end test with decoder service..."
           npm install
+          npm run test
           node --test tests/
 
       - name: Report Results
