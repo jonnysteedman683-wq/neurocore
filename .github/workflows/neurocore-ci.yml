@@ -269,6 +269,12 @@ jobs:
           repository: jonnysteedman683-wq/OMNIBUS
           path: omnibus
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check SwarmRuntimeEngine API
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
