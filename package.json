@@ -5,7 +5,7 @@
   "type": "module",
   "main": "lib/neurocore-swarm.ts",
   "scripts": {
-    "test": "node --import tsx --test tests/neurocore_integration.test.ts --test-reporter=spec",
+    "test": "node --import tsx --test 'tests/**/*.ts' --test-reporter=spec",
     "lint": "tsc --noEmit",
     "build": "tsc"
   },

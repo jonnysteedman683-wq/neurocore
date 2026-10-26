@@ -1,4 +1,5 @@
 name: Safety Audit
+
 on:
   pull_request:
     paths:
@@ -38,3 +39,14 @@ jobs:
               repo: context.repo.repo,
               body: '❌ Neurocore safety audit failed.'
             })
+      - '../neurocore-neural-decoder/**'
+
+jobs:
+  audit:
+    name: Run Safety Audit
+    runs-on: [self-hosted, windows]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Execute safety audit script (blocks merge on failure)
+        run: C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
