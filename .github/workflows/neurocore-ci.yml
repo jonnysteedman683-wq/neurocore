@@ -8,6 +8,7 @@ on:
       - 'lib/neurocore-swarm.ts'
       - 'lib/safety_gate.ts'
       - 'lib/mcp_neurocore.ts'
+      - '../neurocore-neural-decoder/**'
   schedule:
     - cron: '0 0 * * *' # Nightly
 

@@ -11,6 +11,7 @@ lib/mcp_neurocore.ts @you
 # Swarm adapter - AG <antigravity> manages, Hermes <you> reviews
 lib/neurocore-swarm.ts @antigravity
 
+# Neural decoder - AS manages
 # Neural decoder - AS <ai_studio> manages
 ../neurocore-neural-decoder/** @ai_studio
 
