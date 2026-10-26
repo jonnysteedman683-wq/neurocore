@@ -113,6 +113,9 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install # adjust depending on if lockfile exists
 
+      - name: Remove package-lock.json
+        run: rm -f package-lock.json
+
       - name: Run tests
         id: test_run
         run: node --import tsx --test tests/ > test_output.txt 2>&1
