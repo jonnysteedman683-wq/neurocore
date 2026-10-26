@@ -95,20 +95,19 @@ jobs:
   workflow_dispatch:
 
 jobs:
-  neurocore-test:
+  test:
+    name: Full Suite
     if: github.event_name == 'pull_request'
-    name: Neurocore Suite
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
+          node-version: 22
           node-version: '20'
 
       - name: Install dependencies
@@ -142,22 +141,32 @@ jobs:
         run: npm install && rm -f package-lock.json
         run: npm install
 
-      - name: Run tests
-        id: test
-        run: |
-          if node --test tests/ > test_output.log 2>&1; then
-            echo "status=passed" >> $GITHUB_OUTPUT
-          else
-            echo "status=failed" >> $GITHUB_OUTPUT
-            exit 1
-          fi
+      - name: Run Tests
+        id: tests
+        run: node --test tests/ > test_output.txt 2>&1
         continue-on-error: true
 
-      - name: Comment PR
+      - name: Comment on PR (Success)
+        if: steps.tests.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Neurocore suite passed'
+            })
+
+      - name: Comment on PR (Failure)
+        if: steps.tests.outcome == 'failure'
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
+            let output = 'Logs unavailable';
+            if (fs.existsSync('test_output.txt')) {
+              output = fs.readFileSync('test_output.txt', 'utf8').substring(0, 60000);
             let output = fs.readFileSync('test_output.txt', 'utf8');
             if (output.length > 65000) {
               output = output.substring(0, 65000) + '\n... [output truncated]';
@@ -176,6 +185,9 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
+              body: `❌ Neurocore suite failed\n\n\`\`\`\n${output}\n\`\`\``
+            })
+            core.setFailed('Tests failed');
               body: '❌ Neurocore suite failed:\n```\n' + output + '\n```'
             })
 
@@ -219,12 +231,13 @@ jobs:
         if: steps.test.outputs.status == 'failed'
         run: exit 1
 
-  nightly-audit:
+  nightly-drift-check:
+    name: Nightly Swarm API Drift Check
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    name: Nightly Safety + Drift Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Neurocore
+        uses: actions/checkout@v4
         with:
           path: neurocore
       - uses: actions/checkout@v4
@@ -247,21 +260,35 @@ jobs:
           fetch-depth: 0
           path: neurocore
 
-      - uses: actions/checkout@v4
+      - name: Checkout OMNIBUS
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
           repository: jonnysteedman683-wq/OMNIBUS
-          path: OMNIBUS
+          path: omnibus
 
-      - name: Check SwarmRuntimeEngine API
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check Drift
         run: |
-          echo "Checking OMNIBUS SwarmRuntimeEngine API compatibility..."
-          if ! diff OMNIBUS/lib/neurocore-swarm.ts neurocore/lib/neurocore-swarm.ts > /dev/null; then
+          echo "Running API drift check between neurocore and OMNIBUS..."
+          if ! diff omnibus/lib/neurocore-swarm.ts neurocore/lib/neurocore-swarm.ts > /dev/null; then
             echo "::error::API mismatch detected between OMNIBUS/lib/neurocore-swarm.ts and neurocore/lib/neurocore-swarm.ts"
             exit 1
           fi
 
+          cd neurocore
+          npm install
+          echo "Running integration test..."
+          if node --test tests/ > integration_output.log 2>&1; then
+            echo "Integration tests passed"
+          else
+            echo "::error::Integration tests failed"
+            cat integration_output.log
+            exit 1
+          fi
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
