@@ -7,7 +7,7 @@ on:
       - 'lib/neurocore-swarm.ts'
       - 'lib/safety_gate.ts'
       - 'lib/mcp_neurocore.ts'
-      - '**/neurocore-neural-decoder/**'
+      - '../neurocore-neural-decoder/**'
   schedule:
     - cron: '0 6 * * *'  # Daily at 06:00 UTC
   workflow_dispatch:
@@ -31,11 +31,12 @@ jobs:
 
       - name: Install dependencies
         run: npm install && rm -f package-lock.json
+        run: npm install
 
       - name: Run tests
         id: test
         run: |
-          if npm run test > test_output.log 2>&1; then
+          if node --test tests/ > test_output.log 2>&1; then
             echo "status=passed" >> $GITHUB_OUTPUT
           else
             echo "status=failed" >> $GITHUB_OUTPUT
@@ -95,12 +96,19 @@ jobs:
             exit 1
           fi
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Run Full Integration Test
         working-directory: neurocore
         run: |
           echo "Running full end-to-end test with decoder service..."
           npm install && rm -f package-lock.json
+          npm install
           npm run test
+          node --test tests/
 
       - name: Report Results
         run: |
