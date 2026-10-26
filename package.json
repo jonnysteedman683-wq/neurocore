@@ -5,7 +5,7 @@
   "type": "module",
   "main": "lib/neurocore-swarm.ts",
   "scripts": {
-    "test": "node --import tsx --test tests/neurocore_integration.test.ts --test-reporter=spec",
+    "test": "node --import tsx --test 'tests/**/*.ts' --test-reporter=spec",
     "lint": "tsc --noEmit",
     "build": "tsc"
   },
@@ -13,5 +13,8 @@
     "@types/node": "^22.0.0",
     "tsx": "^4.23.10",
     "typescript": "^5.0.0"
+    "@types/node": "^22.20.1",
+    "tsx": "^4.23.7",
+    "typescript": "^5.9.3"
   }
 }

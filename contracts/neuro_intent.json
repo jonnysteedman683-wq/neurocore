@@ -1,0 +1,10 @@
+{
+  "type": "object",
+  "properties": {
+    "alpha_power": { "type": "number", "minimum": 0 },
+    "beta_alpha_ratio": { "type": "number", "minimum": 0 },
+    "asymmetry": { "type": "number", "minimum": -1, "maximum": 1 },
+    "quality": { "type": "number", "minimum": 0, "maximum": 1 }
+  },
+  "required": ["alpha_power", "beta_alpha_ratio", "asymmetry", "quality"]
+}
