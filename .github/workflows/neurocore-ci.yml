@@ -1,5 +1,4 @@
 name: Neurocore CI
-name: Neurocore CI / Integration Test
 
 on:
   pull_request:
@@ -10,61 +9,85 @@ on:
       - 'lib/mcp_neurocore.ts'
       - '../neurocore-neural-decoder/**'
   schedule:
-    - cron: '0 0 * * *' # Nightly
+    - cron: '0 0 * * *'
 
 jobs:
-  test_and_comment:
+  test:
     if: github.event_name == 'pull_request'
-      - 'neurocore-neural-decoder/**' # Note: Assuming this is mapped or moved to standard repo
-
-permissions:
-  pull-requests: write
-  issues: write
-
-jobs:
-  test-and-audit:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
+      - uses: actions/checkout@v4
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 'latest'
-
+          node-version: '22'
       - name: Install dependencies
-        run: npm install
-
+        run: |
+          npm install
+          rm -f package-lock.json
       - name: Run tests
-        id: tests
-        run: node --test tests/
-        continue-on-error: true
+        id: run_tests
+        run: node --test tests/ > test_output.txt 2>&1
+      - name: Upload test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: test_output.txt
 
+  audit:
+    if: github.event_name == 'pull_request'
+    runs-on: [self-hosted, windows]
+    steps:
+      - uses: actions/checkout@v4
       - name: Run safety audit
-        id: audit
         run: C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
-        continue-on-error: true
 
+  report:
+    if: always() && github.event_name == 'pull_request'
+    needs: [test, audit]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download test logs
+        if: needs.test.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: test-logs
+          path: .
+        continue-on-error: true
       - name: Comment on PR
         uses: actions/github-script@v7
-        if: always()
         with:
           script: |
-            const testPassed = "${{ steps.tests.outcome }}" === "success";
-            const auditPassed = "${{ steps.audit.outcome }}" === "success";
+            const testResult = "${{ needs.test.result }}";
+            const auditResult = "${{ needs.audit.result }}";
 
-            if (testPassed && auditPassed) {
+            if (testResult === 'success' && auditResult === 'success') {
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: "✅ Neurocore suite passed"
+                body: '✅ Neurocore suite passed'
               });
             } else {
-              let msg = "Failures:\n";
-              if (!testPassed) msg += "- Tests failed\n";
-              if (!auditPassed) msg += "- Safety audit failed\n";
+              let msg = "❌ Failures:\n";
+              if (testResult !== 'success') {
+                msg += "- Tests failed\n";
+                const fs = require('fs');
+                if (fs.existsSync('test_output.txt')) {
+                  let output = fs.readFileSync('test_output.txt', 'utf8');
+                  if (output.length > 60000) {
+                    output = output.substring(0, 60000) + '\n... [output truncated]';
+                  }
+                  msg += "```\n" + output + "\n```\n";
+                }
+              }
+              if (auditResult !== 'success') {
+                msg += "- Safety audit failed\n";
+              }
               github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
@@ -72,253 +95,37 @@ jobs:
                 body: msg
               });
             }
-
-      - name: Block merge if safety audit failed
-        if: steps.audit.outcome != 'success'
-        run: exit 1
-      - '**/neurocore-neural-decoder/**'
-  schedule:
-    - cron: '0 0 * * *'
-jobs:
-  pr-tests:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: npm install tsx typescript @types/node || true
-      - run: node --import tsx --test tests/
-  nightly:
-    if: github.event_name == 'schedule'
-      - '../neurocore-neural-decoder/**'
-  schedule:
-    - cron: '0 6 * * *'  # Daily at 06:00 UTC
-  workflow_dispatch:
-
-jobs:
-  test:
-    name: Full Suite
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          node-version: '20'
-
-      - name: Install dependencies
-        run: npm ci || npm install # adjust depending on if lockfile exists
-
-      - name: Remove package-lock.json
-        run: rm -f package-lock.json
-
-      - name: Run tests
-        id: test_run
-        run: node --import tsx --test tests/ > test_output.txt 2>&1
-        continue-on-error: true
-
-      - name: Comment on PR (Success)
-        if: steps.test_run.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ Neurocore suite passed'
-            })
-
-      - name: Comment on PR (Failure)
-        if: steps.test_run.outcome != 'success'
-          node-version: '22'
-
-      - name: Install dependencies
-        run: |
-          npm install
-          rm -f package-lock.json
-        run: npm install && rm -f package-lock.json
-        run: npm install
-
-      - name: Run Tests
-        id: tests
-        run: node --test tests/ > test_output.txt 2>&1
-        continue-on-error: true
-
-      - name: Comment on PR (Success)
-        if: steps.tests.outcome == 'success'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '✅ Neurocore suite passed'
-            })
-
-      - name: Comment on PR (Failure)
-        if: steps.tests.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            let output = 'Logs unavailable';
-            if (fs.existsSync('test_output.txt')) {
-              output = fs.readFileSync('test_output.txt', 'utf8').substring(0, 60000);
-            let output = fs.readFileSync('test_output.txt', 'utf8');
-            if (output.length > 65000) {
-              output = output.substring(0, 65000) + '\n... [output truncated]';
-            const status = '${{ steps.test.outputs.status }}';
-            let body = '';
-            if (status === 'passed') {
-              body = '✅ Neurocore suite passed';
-            } else {
-              let logs = 'Could not read logs.';
-              if (fs.existsSync('test_output.log')) {
-                logs = fs.readFileSync('test_output.log', 'utf8').substring(0, 60000);
-              }
-              body = `❌ Neurocore suite failed:\n\n\`\`\`\n${logs}\n\`\`\``;
-            }
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `❌ Neurocore suite failed\n\n\`\`\`\n${output}\n\`\`\``
-            })
-            core.setFailed('Tests failed');
-              body: '❌ Neurocore suite failed:\n```\n' + output + '\n```'
-            })
-
-      - name: Fail job if tests failed
-        if: steps.test_run.outcome != 'success'
+      - name: Fail workflow if needed
+        if: needs.test.result != 'success' || needs.audit.result != 'success'
         run: exit 1
 
-  nightly_integration:
+  nightly-integration:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Neurocore
+      - name: Checkout neurocore
         uses: actions/checkout@v4
         with:
           path: neurocore
-
       - name: Checkout OMNIBUS
         uses: actions/checkout@v4
         with:
           repository: jonnysteedman683-wq/OMNIBUS
           path: OMNIBUS
-
-      - name: Check OMNIBUS drift
+      - name: Check drift
         run: |
-          if ! diff OMNIBUS/lib/neurocore-swarm.ts neurocore/lib/neurocore-swarm.ts; then
+          echo "Running API drift check between neurocore and OMNIBUS..."
+          if ! diff OMNIBUS/lib/neurocore-swarm.ts neurocore/lib/neurocore-swarm.ts > /dev/null; then
             echo "::error::SwarmRuntimeEngine API mismatch detected: drift between neurocore/lib/neurocore-swarm.ts and OMNIBUS/lib/neurocore-swarm.ts"
             exit 1
           fi
-
-      - name: Run integration test against live decoder service
-        run: |
-          cd neurocore
-          echo "Running integration tests against live decoder service"
-          # Assuming there's a specific script for this, for now run tests.
-          npm ci || npm install
-          node --import tsx --test tests/integration/ # Or specific integration test file if it exists, otherwise full suite or mock.
-              body: body
-            });
-
-      - name: Fail workflow if tests failed
-        if: steps.test.outputs.status == 'failed'
-        run: exit 1
-
-  nightly-drift-check:
-    name: Nightly Swarm API Drift Check
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Neurocore
-        uses: actions/checkout@v4
-        with:
-          path: neurocore
-      - uses: actions/checkout@v4
-        with:
-          repository: jonnysteedman683-wq/OMNIBUS
-          path: OMNIBUS
-      - name: Check drift vs main
-        run: diff OMNIBUS/lib/neurocore-swarm.ts neurocore/lib/neurocore-swarm.ts || echo "Drift detected"
-      - name: Alert on SwarmRuntimeEngine API mismatch
-        run: |
-          if ! grep -q "SwarmRuntimeEngine" OMNIBUS/lib/neurocore-swarm.ts; then
-            echo "SwarmRuntimeEngine API mismatch detected!"
-            exit 1
-          fi
-      - name: Run integration test against live decoder service
-        run: |
-          cd neurocore
-          npm install tsx typescript @types/node || true
-          node --import tsx --test tests/neurocore_integration.test.ts
-          fetch-depth: 0
-          path: neurocore
-
-      - name: Checkout OMNIBUS
-        uses: actions/checkout@v4
-        with:
-          repository: jonnysteedman683-wq/OMNIBUS
-          path: omnibus
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Check SwarmRuntimeEngine API
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-
-      - name: Check Drift
-        run: |
-          echo "Running API drift check between neurocore and OMNIBUS..."
-          if ! diff omnibus/lib/neurocore-swarm.ts neurocore/lib/neurocore-swarm.ts > /dev/null; then
-            echo "::error::API mismatch detected between OMNIBUS/lib/neurocore-swarm.ts and neurocore/lib/neurocore-swarm.ts"
-            exit 1
-          fi
-
-          cd neurocore
-          npm install
-          echo "Running integration test..."
-          if node --test tests/ > integration_output.log 2>&1; then
-            echo "Integration tests passed"
-          else
-            echo "::error::Integration tests failed"
-            cat integration_output.log
-            exit 1
-          fi
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
           node-version: '22'
-
-      - name: Run Full Integration Test
+      - name: Run integration test against live decoder service
         working-directory: neurocore
         run: |
-          echo "Running full end-to-end test with decoder service..."
           npm install
           rm -f package-lock.json
-          npm install && rm -f package-lock.json
-          npm install
-          npm run test
           node --test tests/
-
-      - name: Report Results
-        run: |
-          echo "Nightly audit completed"
-
-      - name: Alert on Failure
-        if: failure()
-        run: |
-          echo "::warning::Neurocore nightly audit FAILED - manual intervention required"
