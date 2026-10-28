@@ -1,35 +1,7 @@
 * @you @antigravity @ai_studio
-# Neurocore Code Ownership
 
-# Core contracts - owned by Hermes <you>
 contracts/* @you
-
-# Safety critical - owned by Hermes <you>
+lib/neurocore-swarm.ts @antigravity
 lib/safety_gate.ts @you
 lib/mcp_neurocore.ts @you
-
-# MCP server - owned by Hermes
-lib/mcp_neurocore.ts @you
-
-# Integration - owned by Hermes
-lib/mcp_neurocore.ts @you
-
-# Integration - owned by Hermes
-lib/mcp_neurocore.ts @you
-
-# Integration - owned by Hermes
-lib/mcp_neurocore.ts @you
-
-# Swarm adapter - AG manages, Hermes reviews
-# Swarm adapter - AG <antigravity> manages, Hermes <you> reviews
-lib/neurocore-swarm.ts @antigravity
-
-# Neural decoder - AS manages
-# Neural decoder - AS <ai_studio> manages
 ../neurocore-neural-decoder/** @ai_studio
-
-# All tests - all contributors must keep passing
-tests/** @you @antigravity @ai_studio
-
-* @you @antigravity @ai_studio
-# Configuration finalized for automated PRs
