@@ -26,17 +26,20 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
+        shell: bash
         run: |
           npm install
           rm -f package-lock.json
 
       - name: Run tests
         id: tests
+        shell: bash
         run: node --test tests/ > test_output.txt 2>&1
         continue-on-error: true
 
       - name: Run safety audit
         id: audit
+        shell: cmd
         run: C:/Users/jonny/AppData/Local/hermes/scripts/neurocore-safety-audit.bat
         continue-on-error: true
 
